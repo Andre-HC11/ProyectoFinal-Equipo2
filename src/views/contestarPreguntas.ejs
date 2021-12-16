@@ -1,0 +1,167 @@
+<%- include('partials/_header.ejs') %>
+<!-- cargar la encuesta seleccionada  -->
+<div class="container">
+    <div class=" pt-5 row">
+        <div class="col-md-7">
+          <table class="table table-bordered table-hover">
+            <thead>
+              <tr>
+                <td>n°</td>
+                <td>Tipo de Pregunta</td>
+                <td>Pregunta</td>
+                <td>Opciones</td>
+                <td>Respuesta</td>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (preguntas) { %>
+                <% for(var i = 0; i < preguntas.length; i++) { %>
+                  <tr>
+                    <td><%= (i + 1) %></td>
+                    <td><%= preguntas[i].Tipo_pregunta %></td>
+                    <td><%= preguntas[i].Pregunta_encuesta %></td>
+                    <td><%= preguntas[i].Opciones_pregunta %></td>
+                    <td><div class="form-floating">
+                        <textarea class="form-control" placeholder="Coloca tu respuesta en esta área" id="respuestaPreguntas"></textarea>
+                        <label for="floatingTextarea">Mi respuesta</label>
+                      </div>
+                    </td>
+                  </tr>
+                <% } %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+        
+
+        <div class="col-5">
+            <div class=" pt-2 col">
+                <h2>Sonrie te estamos Grabando.</h2>
+            <a class="btn btn-info" href="/user">Volver a inicio</a>
+                <video id="camara" width="100%"></video>
+            </div>
+            <div class="row">
+                    <div class="row">
+                        <div class="col">
+                            <button type="button" id="grabar" class="btn btn-primary">Grabar</button>
+                            <button type="button" id="detener" class="btn btn-danger">Detener</button>
+                        </div>
+                    </div>
+                        <div id="xxx"></div>
+                
+                        <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+            </div>
+        </div>
+    </div>    
+</div>
+
+<script>
+
+var grabar = document.getElementById("grabar")
+grabar.addEventListener("click", GRABAR)
+var detener = document.getElementById("detener")
+detener.addEventListener("click", DETENER)
+
+var chunks = [];
+var mediaRecorder;
+
+navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: true
+}).then(function(x) {
+    /* usar el flujo de datos */
+    console.log(x)
+    mediaRecorder = new MediaRecorder(x);
+
+    var camara = document.getElementById("camara")
+    camara.srcObject = x
+    camara.onloadedmetadata = function(e) {
+        // Do something with the video here.
+        camara.play()
+    };
+    console.log(camara)
+
+    mediaRecorder.onstop = function(e) {
+        console.log("data available after MediaRecorder.stop() called.");
+
+        var clipName = prompt('Enter a name for your sound clip');
+
+        var clipContainer = document.createElement('article');
+        var clipLabel = document.createElement('p');
+        var audio = document.createElement('video');
+        audio.width = "150"
+        var deleteButton = document.createElement('button');
+        // generar una liga
+        var a = document.createElement('a')
+        var texto = document.createTextNode("descarga")
+        a.appendChild(texto)
+
+        clipContainer.classList.add('clip');
+        audio.setAttribute('controls', '');
+        deleteButton.innerHTML = "Delete";
+        clipLabel.innerHTML = clipName;
+
+        var soundClips = document.getElementById("xxx")
+        clipContainer.appendChild(audio);
+        clipContainer.appendChild(clipLabel);
+        clipContainer.appendChild(deleteButton);
+        clipContainer.appendChild(a)
+        soundClips.appendChild(clipContainer);
+
+        audio.controls = true;
+        var blob = new Blob(chunks, { 'type': 'video/webm; codecs=vp8' });
+        chunks = [];
+        var audioURL = URL.createObjectURL(blob);
+        audio.src = audioURL;
+        console.log("recorder stopped");
+        a.href = audioURL
+        a.download = "video.mp4"
+
+        deleteButton.onclick = function(e) {
+            evtTgt = e.target;
+            evtTgt.parentNode.parentNode.removeChild(evtTgt.parentNode);
+        }
+    }
+
+    mediaRecorder.ondataavailable = function(e) {
+        chunks.push(e.data);
+        enviar(e.data)
+    }
+
+}).catch(function(err) {
+    /* manejar el error */
+    console.log(err)
+});
+
+function GRABAR(params) {
+    mediaRecorder.start();
+    console.log(mediaRecorder.state);
+    console.log("recorder started");
+    // record.style.background = "red";
+    // record.style.color = "black";
+}
+
+function DETENER(params) {
+    mediaRecorder.stop();
+    audio.stop();
+    console.log(mediaRecorder.state);
+    console.log("recorder stopped");
+    // record.style.background = "";
+    // record.style.color = "";
+}
+
+function enviar(stream) {
+    var formData = new FormData();
+    formData.append("videoGrabado", stream)
+    axios.post("http://localhost:4567/", formData, {
+        headers: {
+            "Content-Type": "multipart/form-data"
+        }
+    })
+}
+
+    
+</script>
+
+
+<%- include('partials/_footer.ejs') %>
